@@ -1,0 +1,291 @@
+---
+title: "Biometrie onderzoek"
+authors: "Fabian Kinds, Alexander Fluttert, Vani Rembet, Mohammed Kalash"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    css: style.css
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+---
+
+```{r setup, include=FALSE}
+# DON'T TOUCH THIS
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+
+```
+
+
+## Inleiding
+
+GEEF EEN HEEL KORTE INLEINDING VAN JE ONDERZOEK
+
+:::info
+Wij gaan onderzoeken of er een verschil zit in de arm/been ratio tussen mannen en vrouwen.
+    Het meten en noteren van deze gegevens wordt afgewisseld onder de studenten.
+    Dit leidt tot de onderzsoekvraag: Zit er een verschil in de arm/been ratio tussen man en vrouw?
+    Onze hypothese is dat mannen een hogere arm/been ratio zullen hebben dan vrouwen.
+    Onze nul-hypothese is dat er geen verschil in de arm/been ratio zit tussen mannen en vrouwen.
+:::
+
+
+
+:::attention
+GEEF HIER JE ONDERZOEKSVRAAG:<br>
+Zit er een verschil in de arm/been ratio tussen man en vrouw?
+:::
+
+
+:::attention
+GEEF HIER JE HYPOTHESE:<br>
+Mannen zullen een hogere arm/been ratio hebben dan vrouwen
+:::
+
+
+:::attention
+GEEF HIER JE NULHYPOTHESE:<br>
+Er zit geen verschil in de arm/been ratio tussen mannen en vrouwen
+:::
+
+
+### Ontwerp van het experiment
+
+Arm en been lengtes worden gemeten, vervolgens  zal hiervan de ratio uitgerekend worden en zal dit in een plot weergegeven worden om te kijken of er een verschil zit tussen mannen en vrouwen.
+
+### Ontwerp het protocol
+
+Bij testsubjecten zullen de lengte van de been van enkel tot heup en de lengte van de arm van pols tot oksel gemeten worden.
+Ook zal gevraagd worden naar het geslacht
+
+:::protocol
+#### Protocol voor meting handlengte en handbreedte
+
+##### Benodigdheden
+
+1. Maatlat, schuifmaat of meetlint.  
+2. Spreadsheet om resultaten vast te leggen, met toegang hiertoe op locaties zonder internet-toegang.  
+
+##### Data verzamelen
+
+Ga op de campus opzoek naar vrijwillgers die meewillen doen aan het experiment.
+        Vraag beleefd of ze willen participeren in een klein wetenschappelijk onderzoekje voor school
+        waarbij de lengte van de armen en benen opgenomen zullen worden.
+        Is het antwoord nee, dan groet je vriendelijk en zoek je verder.<br>
+        Is het antwoord ja, dan vraag je of de proefpersoon rechtop wilt gaan staan
+        en zijn arm voruit wilt strekken. Vervolgens meet je
+        de lengte van de pols tot de oksel en en de lengte van de enkel tot de heup.
+        Deze leg je vast in de spreadsheet, samen met je naam en een identifier
+        (géén naam!) van de proefpersoon. Ten slotte vraag je aan de
+        proefpersoon zijn/haar/hun sexe en legt deze vast. Wil de proefpersoon
+        deze niet geven, of is die nonbinair, dan leg je dit vast als
+        “anders/onbekend”. Het “parallel groepje” (dat niet jouw bevindingen mag
+        horen) doet dezelfde meting en slaat deze met dezelfde participant
+        identifier op.
+:::
+
+
+## Uitvoering
+
+:::attention
+Je moet de onderzoeksresultaten in deze vorm opslaan:  
+
+<pre>
+laborant_ID,subject_ID,handlengte,handbreedte,sexe
+3241,G1_03,113,104,m
+<meer rijen met data>
+</pre>
+:::
+
+
+## Analyse
+
+### Lees je eigen data in
+
+Om data vanuit een tekstbestand in te lezen kan je dit codeblok gebruiken, aannemend dat je data er exact zo uitzien als in bovenstaande voorbeeld:
+
+```{r demo-data-inlees, eval=TRUE}
+library(ggplot2)
+library(tidyverse)
+library(tidyr)
+gegevens <- read.csv("arm_en_beendata.csv")
+gegevens$persoonnummer <- factor(gegevens$persoonnummer)
+gegevens$gender <- factor(gegevens$gender, levels=c("m", "v"), labels = c("Male", "Female"))
+
+
+
+data_long <- pivot_longer(gegevens,
+                          cols = c(lengte_arm1, lengte_been1, gemeten_door1,
+                          lengte_arm2, lengte_been2, gemeten_door2),
+                          names_to = c(".value", "meting"),
+                          names_pattern = "(.*)(1|2)"
+  )
+
+data_long$ratio <- data_long$lengte_arm/data_long$lengte_been
+
+```
+
+Let op: als je missende data hebt moet je die specificeren door dit argument toe te voegen: `na.strings = "<jouw NA symbool>"`
+
+
+### Beschrijvende statistiek
+
+In de grafiek en tabel is te zien dat de ratio verschilt tussen mannen en vrouwen.
+De arm/been ratio ligt hoger bij vrouwen dan bij mannen, ook al is de grootte van dit verschil wel erg varierend tussen de twee metingen.
+
+
+```{r}
+gender_split_data <- split(x = data_long,
+      f = data_long$gender)
+
+#apply a function to report means of both measurements
+sapply(X = gender_split_data,
+       FUN = function(x){
+           c(arm_length = mean(x$lengte_arm),
+             leg_length = mean(x$lengte_been),
+             ratio = mean(x$ratio))
+       })
+
+
+ggplot(data_long, aes(x=gender, y=ratio, fill=meting))+
+  geom_boxplot() +
+  xlab("Gender") + 
+  ylab("Arm/Leg Ratio")
+```
+
+### Welke verdeling?
+
+Hoe kleiner de steekproefgrootte (_sample size_) hoe lastiger het is de onderliggende verdeling vast te stellen. Speel maar eens met dit blokje code, en verander de steekproefgrootte (`n=`) in de `rnorm()` functie en de `breaks=` in de `hist()` functie. 
+Neem voor _n_ bijvoorbeeld achtereenvolgens 10, 100, 1000, 10000, 10000 en voor _breaks_ 5, 10, 50. Wanneer zie je een echte normaalverdeling verschijnen? 
+
+```{r sampling-demo, fig.asp=.6, out.width='60%', fig.align='center'}
+hist_data <- data.frame(x = rnorm(n = 1000))
+ggplot(data = hist_data,
+       mapping = aes(x = x)) +
+    geom_histogram(bins = 10, fill = "gold", colour = "black") +
+    theme_minimal()
+
+hist(hist_data$x,
+     breaks = 100,
+     col = "gold",
+     border = "black")
+
+help(hist)
+```
+
+
+:::attention
+**Dit _experiment_ met de argumenten van `rnorm()` en `hist()` moet je opnemen in je eigen RMarkdown.**  
+Beantwoord deze vragen:
+
+1. Wat gebeurt er met de vorm van de verdeling als `n` groter wordt?<br>
+Dan wordt de vorm meer symmetrisch.
+
+2. Wat gebeurt er met de spreiding van de data (x-as) als `n` groter wordt, en kan je dat verklaren?<br>
+Die wordt ook groter, aangezien het de kans op een hele verre uitschieter ook vergroot.
+
+3. Waarom is bij zelfde instellingen voor `n` en `breaks` de uitkomst toch verschillend?<br>
+Omdat n het aantal datapunten aangeeft en breaks het aantal cellen aangeeft.
+
+4. Welke minimale `n` geeft het meeste kans om een echte normaalverdeling te zien?<br>
+10000.
+
+5. Wat voor bijzonders is er aan de hand met het `breaks` argument? Geeft de documentatie daar een verklaring voor?<br>
+Het is alleen een suggestie als je een getal gebruikt.
+:::
+
+### Bronnen van variatie
+
+In de bovenstaande grafiek is al te zien dat er een daadwerkelijk verschil zit in metingen tussen meters wat een systematische bias veroorzaakt, maar ook een verschil tussen geslchten, ofwel een biologische variatie
+
+De biologische variatie tussen man en vrouw en bij beiden onderling zal allebij waarschijnlijk veroorzaakt worden door overerving.
+
+### De hypothese aannemen?
+
+
+```{r}
+shapiro.test(data_long$ratio)
+```
+De p waarde ligt boven de 0.05, dus de t-test kan worden uitgevoerd
+
+```{r}
+female_ratios <- subset(data_long, 
+                        subset = gender == "Female", 
+                        select = ratio, 
+                        drop = T) # drop = T forces ro a vector
+male_ratios <- subset(data_long, 
+                        subset = gender == "Male", 
+                        select = ratio, 
+                        drop = T)
+t.test(female_ratios, male_ratios)
+```
+De p waarde is net hoger dan 0.05, dus zal de nul-hypothese niet verworpen worden en 
+is er dus geen significant bewijs dat er een arm/been ratio verschil is tussen mannen en vrouwen
+
+```{r}
+wilcox.test(female_ratios, male_ratios)
+```
+Ook deze zit niet in het significante bereik.
+
+
+## Reflectie op het experiment
+
+:::info
+Bespreek in je groep de volgende vragen en voeg de antwoorden toe aan je uitgewerkte onderzoeksdocument.  
+
+1. Zijn de metingen tussen de verschillende meters ook (significant) verschillend? Zo ja, waardoor zou je de verschillen kunnen verklaren?<br>
+```{r}
+meter1_ratios <- subset(data_long, 
+                        subset = meting == 2, 
+                        select = ratio, 
+                        drop = T) # drop = T forces ro a vector
+meter2_ratios <- subset(data_long, 
+                        subset = meting == 1, 
+                        select = ratio, 
+                        drop = T)
+t.test(meter1_ratios, meter2_ratios)
+```
+De p waarde ligt ver boven de 0.05, dus deze zijn niet significant. Echter is het wel het geval dat meter 1 en 2 niet altijd dezelfde zijn.
+Als je per persoon kijkt naar de metingen lijkt het wel alsof dit een significante impact heeft op de resultaten
+
+2. Onderzoek de verschillen tussen mannen en vrouwen met betrekking tot arm lengte, been lengte en de ratio.<br>
+De data die we hebben verzameld toont geen significante relatie aan tussen arm/been ratio.
+
+```{r}
+female_arm <- subset(data_long, 
+                        subset = gender == "Female", 
+                        select = lengte_arm, 
+                        drop = T) # drop = T forces ro a vector
+male_arm <- subset(data_long, 
+                        subset = gender == "Male", 
+                        select = lengte_arm, 
+                        drop = T)
+t.test(female_arm, male_arm)
+
+female_leg <- subset(data_long, 
+                        subset = gender == "Female", 
+                        select = lengte_been, 
+                        drop = T) # drop = T forces ro a vector
+male_leg <- subset(data_long, 
+                        subset = gender == "Male", 
+                        select = lengte_been, 
+                        drop = T)
+t.test(female_leg, male_leg)
+```
+De data toont ook niet dat er een significant verschil is in arm lengte, echter heeft de been lengte een p waarde van onder de 0.05, dus is het aannemelijk dat hier daadwerkelijk een significant verschil in zit tussen man en vrouw
+
+
+3. Zou je het protocol aanpassen na deze ervaring, of was hij voldoende duidelijk en reproduceerbaar?<br>
+Ja, vooral op het moment dat mensen meerder lagen aan hebben is het moeijlijk om consistent dezelfde afstanden te meten.
+Echter is het vragen of mensen kleding uit willen doen dan weer niet heel gepast, dus is het moeilijk hierin een balans te vinden.
+:::
+
+
+:::attention
+#### Wat je moet inleveren
+Voor de verwerking en analyse van je eigen data maak je gebruik van het aangeleverde template RMarkdown document. Daarin doorloop je dezelfde onderzoek stappen als hieronder, maar dan met je eigen data. Aan het einde van de dag gaat dat document, in originele en "geknitte" vorm, samen met je databestand, in een git repo die is opgezet volgens voorschift in de cursushandleiding. De link hiernaar toe gaat in je portfolio op eJournal. Let op dat je _alle_ stappen hebt doorlopen voordat je inlevert. Gebruik ook de RStudio spellingscontrole!  
+Vergeet niet jullie namen en studentnummers bovenaan de markdown te zetten!
+:::
